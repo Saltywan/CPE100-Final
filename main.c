@@ -80,8 +80,8 @@ char *handle_url(char *url)
 int main(int argc, char *argv[])
 {
     char *data;
-    
-    data = handle_url("https://httpbin.org/get?name=daniel&project=curl");
+
+    data = handle_url("https://httpbin.org/get?name=deez&project=nut");
 
     if (data)
     {
