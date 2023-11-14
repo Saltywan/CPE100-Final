@@ -1,5 +1,5 @@
 run:
-	gcc -o main main.c -lcurl -DDEBUG && ./main
+	gcc -o main main.c -lcurl && ./main
 
 clean:
 	rm -rf main

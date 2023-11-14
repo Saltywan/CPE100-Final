@@ -9,6 +9,22 @@ struct url_data
     char *data;
 };
 
+char *concat(const char *str1, const char *str2)
+{
+    int i = 0, j = 0;
+    char *result = malloc(strlen(str1) + strlen(str2) + 1); // allow space for nul-terminator
+    while (*str1)
+    {
+        result[i++] = *str1++; // Only increment i once and "str1" once
+    }
+    while (*str2)
+    {
+        result[i + j++] = *str2++; // Only increment j once and "str2" once
+    }
+    result[i + j] = '\0'; // Add required nul-terminator
+    return result;
+}
+
 size_t write_data(void *ptr, size_t size, size_t nmemb, struct url_data *data)
 {
     size_t index = data->size;
@@ -17,9 +33,6 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, struct url_data *data)
 
     data->size += (size * nmemb);
 
-#ifdef DEBUG
-    fprintf(stderr, "data at %p size=%ld nmemb=%ld\n", ptr, size, nmemb);
-#endif
     tmp = realloc(data->data, data->size + 1); /* +1 for '\0' */
 
     if (tmp)
@@ -42,13 +55,14 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, struct url_data *data)
     return size * nmemb;
 }
 
-char *handle_url(char *url)
+char *handle_url(char *message)
 {
     CURL *curl;
 
     struct url_data data;
     data.size = 0;
-    data.data = malloc(4096); /* reasonable size initial buffer */
+    data.data = malloc(4096);
+
     if (NULL == data.data)
     {
         fprintf(stderr, "Failed to allocate memory.\n");
@@ -60,12 +74,24 @@ char *handle_url(char *url)
     CURLcode res;
 
     curl = curl_easy_init();
+
+    char *httpPostFields = "model=gpt-3.5-turbo&messages[role]=user&messages[content]=";
+    char *gptInputMessage = concat(httpPostFields, message);
+
     if (curl)
     {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "model=gpt-3.5-turbo&messages[role]=user&messages[content]=ILoveYourMom");
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Authorization: Bearer <OPEN_AI_TOKEN>");
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
         res = curl_easy_perform(curl);
+
         if (res != CURLE_OK)
         {
             fprintf(stderr, "curl_easy_perform() failed: %s\n",
@@ -81,7 +107,7 @@ int main(int argc, char *argv[])
 {
     char *data;
 
-    data = handle_url("https://httpbin.org/get?name=deez&project=nut");
+    data = handle_url("Hello World!"); // Input message here!
 
     if (data)
     {
