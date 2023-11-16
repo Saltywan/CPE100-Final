@@ -3,13 +3,24 @@
 #include <string.h>
 #include <stdlib.h>
 
+struct resData
+{
+    int index;
+    struct message
+    {
+        char *role;
+        char *content;
+    } message;
+} resData;
+
 struct url_data
 {
     size_t size;
     char *data;
 };
 
-char *concat(const char *str1, const char *str2)
+char *
+concat(const char *str1, const char *str2)
 {
     int i = 0, j = 0;
     char *result = malloc(strlen(str1) + strlen(str2) + 1); // allow space for nul-terminator
@@ -88,7 +99,7 @@ char *handle_url(char *message)
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 
         struct curl_slist *headers = NULL;
-        const char* openai_api_key = "";
+        const char *openai_api_key = "";
         char auth_header[100];
         sprintf(auth_header, "Authorization: Bearer %s", openai_api_key);
         headers = curl_slist_append(headers, auth_header);
