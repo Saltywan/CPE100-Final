@@ -66,7 +66,7 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, struct url_data *data)
     return size * nmemb;
 }
 
-char *handle_url(char *message)
+char *handle_url(char *user_message)
 {
     CURL *curl;
 
@@ -86,15 +86,17 @@ char *handle_url(char *message)
 
     curl = curl_easy_init();
 
-    char *httpPostFields = "model=gpt-3.5-turbo&messages[role]=user&messages[content]=";
-    char *gptInputMessage = concat(httpPostFields, message);
 
     if (curl)
     {
         curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
         // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "model=gpt-3.5-turbo&messages=[role]user&messages[content]=ILoveYourMom");
-        char *post_fields = "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"user\", \"content\": \"Say this is a test!\"}], \"temperature\": 0.7}";
+        char *post_fields = malloc(1000);
+        sprintf(post_fields, "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"user\", \"content\": \"%s\"}], \"temperature\": 0.7}", user_message);
+        // char *post_fields = "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"user\", \"content\": \"Say this is a test!\"}], \"temperature\": 0.7}";
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
+        printf("%s\n", post_fields);
+        // free(post_fields);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 
@@ -107,7 +109,7 @@ char *handle_url(char *message)
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
         res = curl_easy_perform(curl);
-
+        free(post_fields);
         if (res != CURLE_OK)
         {
             fprintf(stderr, "curl_easy_perform() failed: %s\n",
