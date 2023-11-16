@@ -81,12 +81,17 @@ char *handle_url(char *message)
     if (curl)
     {
         curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "model=gpt-3.5-turbo&messages[role]=user&messages[content]=ILoveYourMom");
+        // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "model=gpt-3.5-turbo&messages=[role]user&messages[content]=ILoveYourMom");
+        char *post_fields = "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"user\", \"content\": \"Say this is a test!\"}], \"temperature\": 0.7}";
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 
         struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, "Authorization: Bearer <OPEN_AI_TOKEN>");
+        const char* openai_api_key = "";
+        char auth_header[100];
+        sprintf(auth_header, "Authorization: Bearer %s", openai_api_key);
+        headers = curl_slist_append(headers, auth_header);
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
