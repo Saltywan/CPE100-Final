@@ -3,37 +3,91 @@
 #include <curl/curl.h>
 #include <string.h>
 
-char *getKey();
-
-char *getResponseData();
-
-char* extract_message(char* response_data);
-
 // Define a struct to hold the response data
-struct ResponseData {
+typedef struct ResponseData {
     char *data;
     size_t size;
-};
+} ResponseData;
 
+typedef struct {
+    char* role;
+    char* content;
+} Message;
+
+char *getKey();
+char *getResponseData(Message* messages, int num_messages, double temperature);
+char* create_request(Message* messages, int num_messages, double temperature);
+char* extractMessage(char* response_data);
+char* escape_json_string(const char* input);
+char* unescape_json_string(const char* input);
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+
+
 
 int main(void)
 {
-    char *response = getResponseData();
+    Message messages[100] = {
+        {"system", "You are an AI assistant. You answer shortly and concisely."},     
+        // {"user", "Hello!"},
+    };
 
-    if (response != NULL)
-    {
-        // Extract the message from the response
-        char *message = extract_message(response);
-        // Print the response data
-        // printf("Response: %s\n", response);
-        printf("Message: %s\n", message);
+    double temperature = 0.7;
+    int num_messages = 1;
 
-        // Cleanup the response data
-        free(response);
-        // free(message);
+    printf("Enter a message (type \"exit\" to quit): \n");
+
+    while (1) {
+        // Get the user input
+        char user_input[1000];
+        printf("\nYou: ");
+        // scanf("%[^\n]%*c", user_input); // %[^\n] means to read until a newline is encountered, %*c means to read the newline character and discard it
+        fgets(user_input, 1000, stdin);
+        user_input[strlen(user_input) - 1] = '\0'; // Remove the newline character from the end of the string
+
+        if (strcmp(user_input, "exit") == 0) {
+            printf("Goodbye!\n");
+            break;
+        }
+
+        // Message new_message = {"user", user_input};
+        // printf("DEBUG: %s\n", escape_json_string(user_input));
+        messages[num_messages] = (Message){"user", escape_json_string(user_input)};
+        num_messages++;
+
+        // Get the response data
+        // printf("Thinking...\n");
+        char *response = getResponseData(messages, num_messages, temperature);
+        // printf("Done!\n");
+
+        // char *response = getResponseData(messages, 2, 0.7);
+
+        if (response != NULL)
+        {
+            // Extract the message from the response
+            // char *message = extractMessage(response);
+            // Print the response data
+            // printf("Response: %s\n", response);
+            // printf("\nAssistant: %s\n", unescape_json_string(message));
+
+            messages[num_messages] = (Message){"assistant", extractMessage(response)};
+            printf("\nAssistant: %s\n", unescape_json_string(messages[num_messages].content));
+
+
+            // Add the message to the messages array
+            // messages[num_messages] = (Message){"assistant", message};
+            num_messages++;
+            
+            // Cleanup the response data
+            // free(message);
+        }
+        else
+        {
+            printf("Failed to get response data\n");
+            // remove the last message from the messages array
+            num_messages--;
+        }
     }
-
+    printf("num_messages: %d\n", num_messages-1);
     return 0;
 }
 
@@ -42,7 +96,7 @@ int main(void)
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) // size_t is an unsigned integer type of at least 16 bit
 {   // nmemb is the number of bytes to be written, size is the size of the data pointed to by ptr, userp is the pointer passed to the callback function
     size_t realsize = size * nmemb;
-    struct ResponseData *response = (struct ResponseData *)userp;
+    ResponseData *response = (ResponseData *)userp;
 
     // Calculate the new total size of the response data
     size_t new_size = response->size + realsize; // -> is used to access the struct members, like a pointer, can also use (*response).size
@@ -67,7 +121,7 @@ size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) // 
     return realsize;
 }
 
-char *getResponseData()
+char *getResponseData(Message* messages, int num_messages, double temperature)
 {
     CURL *curl;
     CURLcode res;
@@ -92,8 +146,7 @@ char *getResponseData()
         curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         /* Now specify the POST data */
-        //  char *post_fields = "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"system\", \"content\": \"You are an AI assistant.\"}, {\"role\": \"user\", \"content\": \"Hello!\"}, {\"role\": \"assistant\", \"content\": \"Hi there!\"}, {\"role\": \"user\", \"content\": \"I need help with a problem.\"}], \"temperature\": 0.7}";
-        char *post_fields = "{\"model\": \"gpt-3.5-turbo\", \"messages\": [{\"role\": \"user\", \"content\": \"Say this is a test!\"}], \"temperature\": 0.7}";
+        char *post_fields = create_request(messages, num_messages, temperature);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
 
         // Create a struct to hold the response data
@@ -116,7 +169,9 @@ char *getResponseData()
         /* always cleanup */
         curl_easy_cleanup(curl);
 
-        // printf("Done!\n");
+        // Free the post_fields string
+        free(post_fields);
+
         // Return the response data
         return response.data;
     }
@@ -124,8 +179,26 @@ char *getResponseData()
     return NULL;
 }
 
+char* create_request(Message* messages, int num_messages, double temperature) {
+    char* request = malloc(10000);  // Allocate a large enough buffer
+    sprintf(request, "{\"model\": \"gpt-3.5-turbo\", \"messages\": [");
 
+    for (int i = 0; i < num_messages; i++) {
+        char message[10000];
+        // printf("messages[%d].content: %s\n", i, messages[i].content);
+        sprintf(message, "{\"role\": \"%s\", \"content\": \"%s\"}", messages[i].role, messages[i].content);
+        strcat(request, message);
+        if (i < num_messages - 1) {
+            strcat(request, ", ");
+        }
+    }
 
+    char temperature_str[50];
+    sprintf(temperature_str, "], \"temperature\": %.1f}", temperature);
+    strcat(request, temperature_str);
+    // printf("request: %s\n", request);
+    return request;
+}
 
 char *getKey() {
     static char *api_key = NULL;
@@ -156,7 +229,7 @@ char *getKey() {
 }
 
 
-char* extract_message(char* response_data) {
+char* extractMessage(char* response_data) {
     // Parse the response to extract the message
     char *start = strstr(response_data, "\"content\": \"");
     // printf("start: %s\n", start);
@@ -184,10 +257,65 @@ char* extract_message(char* response_data) {
             return message;
         }
     }
+
+    else {
+        printf("Failed\n");
+        exit(1);
+    }
+
     return NULL;
 }
 
+char* escape_json_string(const char* input) {
+    const char* p = input;
+    char* output = malloc(strlen(input) * 2 + 1); // Enough space for worst case
+    char* q = output;
 
+    while (*p) {
+        switch (*p) {
+            case '\"': *q++ = '\\'; *q++ = '\"'; break;
+            case '\\': *q++ = '\\'; *q++ = '\\'; break;
+            case '\b': *q++ = '\\'; *q++ = 'b'; break;
+            case '\f': *q++ = '\\'; *q++ = 'f'; break;
+            case '\n': *q++ = '\\'; *q++ = 'n'; break;
+            case '\r': *q++ = '\\'; *q++ = 'r'; break;
+            case '\t': *q++ = '\\'; *q++ = 't'; break;
+            default: *q++ = *p; break;
+        }
+        p++;
+    }
+
+    *q = 0;
+    return output;
+}
+
+char* unescape_json_string(const char* input) {
+    const char* p = input;
+    char* output = malloc(strlen(input) + 1); // Enough space for the unescaped string
+    char* q = output;
+
+    while (*p) {
+        if (*p == '\\') {
+            p++;  // Skip the backslash
+            switch (*p) {
+                case '\"': *q++ = '\"'; break;
+                case '\\': *q++ = '\\'; break;
+                case 'b': *q++ = '\b'; break;
+                case 'f': *q++ = '\f'; break;
+                case 'n': *q++ = '\n'; break;
+                case 'r': *q++ = '\r'; break;
+                case 't': *q++ = '\t'; break;
+                default: *q++ = *p; break;  // If it's not a special character, just copy it
+            }
+        } else {
+            *q++ = *p;
+        }
+        p++;
+    }
+
+    *q = 0;
+    return output;
+}
 
 
 // {
