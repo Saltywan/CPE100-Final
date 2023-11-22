@@ -260,6 +260,7 @@ char* extractMessage(char* response_data) {
 
     else {
         printf("Failed\n");
+        printf("Response: %s", response_data);
         exit(1);
     }
 
