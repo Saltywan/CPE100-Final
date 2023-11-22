@@ -148,7 +148,7 @@ char *getResponseData(Message *messages, int num_messages, double temperature)
         char *post_fields = create_request(messages, num_messages, temperature);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
         // set timeout
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L); // 10 second timeout
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L); // 20 second timeout
 
         // Create a struct to hold the response data
         struct ResponseData response;
