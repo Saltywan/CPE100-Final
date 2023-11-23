@@ -29,6 +29,7 @@ int main(void)
     Message messages[100] = {
         {"system", "You are an AI assistant. You answer shortly and concisely."},
         // {"user", "Hello!"},
+        // TODO: include past conversation log here
     };
 
     double temperature = 0.7;
