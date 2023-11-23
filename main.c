@@ -74,6 +74,11 @@ int main(void)
             messages[num_messages] = (Message){"assistant", extractMessage(response)};
             printf("\nAssistant: %s\n", unescape_json_string(messages[num_messages].content));
 
+            // TODO: create log here 
+            // user: escape_json_string(user_input)
+            // assistant: unescape_json_string(messages[num_messages].content)
+            // num_messages indicates the index of message
+            
             // Add the message to the messages array
             // messages[num_messages] = (Message){"assistant", message};
             num_messages++;
