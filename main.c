@@ -3,27 +3,46 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <strings.h>
+#include "lib/request.c"
 
-// Define a struct to hold the response data
-typedef struct ResponseData
-{
-    char *data;
-    size_t size;
-} ResponseData;
+int checkExist(char filesList[][1000], char nameLog[], int count) {
+    int alreadyExist = 0;
+    for (int i = 0; i < count; i++) {
+        if (strcmp(filesList[i], nameLog) == 0) {
+            alreadyExist = 1;
+            break;
+        }
+    }
+    return alreadyExist;
+}
 
-typedef struct
-{
-    char *role;
-    char *content;
-} Message;
+void createPath(char* nameLog) {
+    char path[100] = "log/";
+    strcat(path, nameLog);
+    strcat(path, ".txt");
+    strcpy(nameLog, path);
+}
 
-char *getKey();
-char *getResponseData(Message *messages, int num_messages, double temperature);
-char *create_request(Message *messages, int num_messages, double temperature);
-char *extractMessage(char *response_data);
-char *escape_json_string(const char *input);
-char *unescape_json_string(const char *input);
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+void readLogFile(FILE* fp, Message *messages, int *num_messages) {
+    char role[100], content[1000];
+    int index = *num_messages;
+    while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
+        role[strlen(role) - 1] = '\0';
+        printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
+        //strcpy(messages[index].role, role);
+        //strcpy(messages[index].content, content);
+        //messages[index] = (Message){role, content};
+        printf("%s, %s\n", messages[index - 1].role, messages[index - 1].content);
+        printf("%s, %s\n", messages[index].role, messages[index].content);
+        index++;
+    }
+    *num_messages = index;
+}
+
+void writeLogFile(FILE* fp, Message *messages, int num_messages, char* user_input) {
+    fprintf(fp, "user, %s\n", escape_json_string(user_input));
+    fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
+}
 
 int main(void)
 {
@@ -33,6 +52,7 @@ int main(void)
     int count = 0, alreadyExist = 0;
     fl = fopen("filesList.txt", "a+");
     printf("\nList of previous chats:\n");
+    // print exist file
     while(fscanf(fl, "%s", existFile) != EOF) {
         printf("- %s\n", existFile);
         strcpy(fileList[count], existFile);
@@ -40,28 +60,14 @@ int main(void)
     }
     printf("\n");
     printf("Enter chat name: ");
-    //scanf(" %s", nameLog);
     scanf("%[^\n]%*c", nameLog);
-    for (int i = 0; i < count; i++) {
-        if (strcmp(fileList[i], nameLog) == 0) {
-            alreadyExist = 1;
-            break;
-        }
-    }
-    if (!alreadyExist) {
+    // check if log file already exist
+    if (!checkExist(fileList, nameLog, count)) {
+        // if not exist save to files list
         fprintf(fl, "%s\n", nameLog);
     }
-    // fgets(nameLog, 1000, stdin);
-    // nameLog[strlen(nameLog) - 1] = '\0';
-    char path[100] = "log/";
-    strcat(path, nameLog);
-    strcat(path, ".txt");
-    fp = fopen(path, "a+");
-    /*if (fp == NULL)
-    {
-        printf("File not found\n");
-        exit(1);
-    }*/
+    createPath(nameLog);
+    fp = fopen(nameLog, "a+");
     
     // add past conversation to array past conversation
     Message messages[100] = {
@@ -73,14 +79,22 @@ int main(void)
     int num_messages = 1;
 
     printf("Enter a message (type \"exit\" to quit): \n");
-    char role[100], content[1000];
-    while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
-        role[strlen(role) - 1] = '\0';
-        printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
-        messages[num_messages] = (Message){role, content};
-        num_messages++;
+    readLogFile(fp, messages, &num_messages);
+    //char role[100], content[1000];
+    // while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
+    //     role[strlen(role) - 1] = '\0';
+    //     printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
+    //     printf("KUY1\n");
+    //     //strcpy(messages[*num_messages].role, role);
+    //     //strcpy(messages[*num_messages].content, content);
+    //     *(messages+(num_messages)) = (Message){role, content};
+    //     num_messages = num_messages + 1;
+    // }
+    printf("%d\n", num_messages);
+    for (int i = 0; i < num_messages; i++)
+    {
+        printf("%s %s\n", messages[i].role, messages[i].content);
     }
-
     while (1)
     {
         // Get the user input
@@ -123,9 +137,8 @@ int main(void)
             // assistant: unescape_json_string(messages[num_messages].content)
             // num_messages indicates the index of message
             
-            
-            fprintf(fp, "user, %s\n", escape_json_string(user_input));
-            fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
+            // write new chat to log file
+            writeLogFile(fp, messages, num_messages, user_input);
 
             // Add the message to the messages array
             // messages[num_messages] = (Message){"assistant", message};
@@ -146,294 +159,7 @@ int main(void)
     return 0;
 }
 
-// Callback function to write the response data
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) // size_t is an unsigned integer type of at least 16 bit
-{                                                                            // nmemb is the number of bytes to be written, size is the size of the data pointed to by ptr, userp is the pointer passed to the callback function
-    size_t realsize = size * nmemb;
-    ResponseData *response = (ResponseData *)userp;
 
-    // Calculate the new total size of the response data
-    size_t new_size = response->size + realsize; // -> is used to access the struct members, like a pointer, can also use (*response).size
-
-    // Allocate memory for the new response data
-    char *new_data = realloc(response->data, new_size + 1); // realloc is used to resize the memory
-    if (new_data == NULL)
-    {
-        printf("Failed to allocate memory for response data\n");
-        return 0;
-    }
-
-    // Copy the contents to the new memory location
-    memcpy(new_data + response->size, contents, realsize);
-
-    // Update the response data and size
-    response->data = new_data;
-    response->size = new_size;
-    response->data[response->size] = '\0';
-
-    return realsize;
-}
-
-char *getResponseData(Message *messages, int num_messages, double temperature)
-{
-    CURL *curl;
-    CURLcode res;
-
-    /* In windows, this will init the winsock stuff */
-    curl_global_init(CURL_GLOBAL_ALL);
-
-    /* get a curl handle */
-    curl = curl_easy_init();
-    if (curl)
-    {
-        /* First set the URL that is about to receive our POST. This URL can
-           just as well be an https:// URL if that is what should receive the
-           data. */
-        const char *openai_api_key = getKey();
-        char auth_header[100];
-        sprintf(auth_header, "Authorization: Bearer %s", openai_api_key);
-
-        struct curl_slist *headers = NULL;
-        headers = curl_slist_append(headers, "Content-Type: application/json");
-        headers = curl_slist_append(headers, auth_header);
-        curl_easy_setopt(curl, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        /* Now specify the POST data */
-        char *post_fields = create_request(messages, num_messages, temperature);
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields);
-        // set timeout
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L); // 20 second timeout
-
-        // Create a struct to hold the response data
-        struct ResponseData response;
-        response.data = malloc(1);
-        response.size = 0;
-
-        // Set the write callback function
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
-        /* Perform the request, res will get the return code */
-        res = curl_easy_perform(curl);
-
-        /* Check for errors */
-        if (res != CURLE_OK)
-            fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                    curl_easy_strerror(res));
-
-        /* always cleanup */
-        curl_easy_cleanup(curl);
-
-        // Free the post_fields string
-        free(post_fields);
-
-        // Return the response data
-        return response.data;
-    }
-    curl_global_cleanup();
-    return NULL;
-}
-
-char *create_request(Message *messages, int num_messages, double temperature)
-{
-    char *request = malloc(10000); // Allocate a large enough buffer
-    sprintf(request, "{\"model\": \"gpt-3.5-turbo\", \"messages\": [");
-
-    for (int i = 0; i < num_messages; i++)
-    {
-        char message[10000];
-        // printf("messages[%d].content: %s\n", i, messages[i].content);
-        sprintf(message, "{\"role\": \"%s\", \"content\": \"%s\"}", messages[i].role, messages[i].content);
-        strcat(request, message);
-        if (i < num_messages - 1)
-        {
-            strcat(request, ", ");
-        }
-    }
-
-    char temperature_str[50];
-    sprintf(temperature_str, "], \"temperature\": %.1f}", temperature);
-    strcat(request, temperature_str);
-    printf("request: %s\n", request);
-    return request;
-}
-
-char *getKey()
-{
-    static char *api_key = NULL;
-
-    if (api_key == NULL)
-    {
-        FILE *file = fopen("api_key.txt", "r");
-
-        if (file != NULL)
-        {
-            // File exists, read API key from file
-            api_key = malloc(100); // Allocate memory for API key
-            fgets(api_key, 100, file);
-            fclose(file);
-        }
-        else
-        {
-            // File does not exist, prompt user to create a new API key
-            printf("API key not found. Please enter a new API key: ");
-            api_key = malloc(100); // Allocate memory for API key
-            scanf("%s", api_key);
-
-            file = fopen("api_key.txt", "w");
-            fprintf(file, "%s", api_key);
-            fclose(file);
-            // clear screen
-            system("clear");
-        }
-    }
-
-    return api_key;
-}
-
-char *extractMessage(char *response_data)
-{
-    // Parse the response to extract the message
-    char *start = strstr(response_data, "\"content\": \"");
-    // printf("start: %s\n", start);
-    if (start != NULL)
-    {
-        start += strlen("\"content\": \"");
-        // printf("start: %s\n", start);
-        // printf("strlen: %d\n", strlen(start));
-        char *end = start + strlen(start) - 1;
-        int quote_count = 0;
-        while (end >= start)
-        {
-            if (*end == '\"')
-            {
-                quote_count++;
-                if (quote_count == 13)
-                {
-                    break;
-                }
-            }
-            end--;
-        }
-        if (quote_count == 13)
-        {
-            size_t message_length = end - start;
-            char *message = malloc(message_length + 1);
-            strncpy(message, start, message_length);
-            message[message_length] = '\0';
-            free(response_data);
-            return message;
-        }
-    }
-
-    else
-    {
-        printf("Failed\n");
-        printf("Response: %s", response_data);
-        exit(1);
-    }
-
-    return NULL;
-}
-
-char *escape_json_string(const char *input)
-{
-    const char *p = input;
-    char *output = malloc(strlen(input) * 2 + 1); // Enough space for worst case
-    char *q = output;
-
-    while (*p)
-    {
-        switch (*p)
-        {
-        case '\"':
-            *q++ = '\\';
-            *q++ = '\"';
-            break;
-        case '\\':
-            *q++ = '\\';
-            *q++ = '\\';
-            break;
-        case '\b':
-            *q++ = '\\';
-            *q++ = 'b';
-            break;
-        case '\f':
-            *q++ = '\\';
-            *q++ = 'f';
-            break;
-        case '\n':
-            *q++ = '\\';
-            *q++ = 'n';
-            break;
-        case '\r':
-            *q++ = '\\';
-            *q++ = 'r';
-            break;
-        case '\t':
-            *q++ = '\\';
-            *q++ = 't';
-            break;
-        default:
-            *q++ = *p;
-            break;
-        }
-        p++;
-    }
-
-    *q = 0;
-    return output;
-}
-
-char *unescape_json_string(const char *input)
-{
-    const char *p = input;
-    char *output = malloc(strlen(input) + 1); // Enough space for the unescaped string
-    char *q = output;
-
-    while (*p)
-    {
-        if (*p == '\\')
-        {
-            p++; // Skip the backslash
-            switch (*p)
-            {
-            case '\"':
-                *q++ = '\"';
-                break;
-            case '\\':
-                *q++ = '\\';
-                break;
-            case 'b':
-                *q++ = '\b';
-                break;
-            case 'f':
-                *q++ = '\f';
-                break;
-            case 'n':
-                *q++ = '\n';
-                break;
-            case 'r':
-                *q++ = '\r';
-                break;
-            case 't':
-                *q++ = '\t';
-                break;
-            default:
-                *q++ = *p;
-                break; // If it's not a special character, just copy it
-            }
-        }
-        else
-        {
-            *q++ = *p;
-        }
-        p++;
-    }
-
-    *q = 0;
-    return output;
-}
 
 // {
 //   "id": "chatcmpl-8NLRTinqGPDMwzrYkaYDoEsYzmEcK",
