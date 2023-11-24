@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <string.h>
+#include <strings.h>
 
 // Define a struct to hold the response data
 typedef struct ResponseData
@@ -26,31 +27,59 @@ size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
 int main(void)
 {
-    FILE *fp;
+    FILE *fp, *fl;
     //open file in log folder
-    char nameLog[1000];
-    fp = fopen(nameLog, "w+", "r");
-    if (fp == NULL)
+    char nameLog[1000], existFile[1000], fileList[100][1000];
+    int count = 0, alreadyExist = 0;
+    fl = fopen("filesList.txt", "a+");
+    printf("\nList of previous chats:\n");
+    while(fscanf(fl, "%s", existFile) != EOF) {
+        printf("- %s\n", existFile);
+        strcpy(fileList[count], existFile);
+        count++;
+    }
+    printf("\n");
+    printf("Enter chat name: ");
+    //scanf(" %s", nameLog);
+    scanf("%[^\n]%*c", nameLog);
+    for (int i = 0; i < count; i++) {
+        if (strcmp(fileList[i], nameLog) == 0) {
+            alreadyExist = 1;
+            break;
+        }
+    }
+    if (!alreadyExist) {
+        fprintf(fl, "%s\n", nameLog);
+    }
+    // fgets(nameLog, 1000, stdin);
+    // nameLog[strlen(nameLog) - 1] = '\0';
+    char path[100] = "log/";
+    strcat(path, nameLog);
+    strcat(path, ".txt");
+    fp = fopen(path, "a+");
+    /*if (fp == NULL)
     {
         printf("File not found\n");
         exit(1);
-    }
+    }*/
+    
     // add past conversation to array past conversation
-    while(fgets(messages[num_messages].content, 1000, fp) != NULL){
-        num_messages++;
-    }
     Message messages[100] = {
         {"system", "You are an AI assistant. You answer shortly and concisely."},
         // {"user", "Hello!"},
-        // TODO: include past conversation log here
-
-        
     };
 
     double temperature = 0.7;
     int num_messages = 1;
 
     printf("Enter a message (type \"exit\" to quit): \n");
+    char role[100], content[1000];
+    while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
+        role[strlen(role) - 1] = '\0';
+        printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
+        messages[num_messages] = (Message){role, content};
+        num_messages++;
+    }
 
     while (1)
     {
@@ -61,7 +90,7 @@ int main(void)
         fgets(user_input, 1000, stdin);
         user_input[strlen(user_input) - 1] = '\0'; // Remove the newline character from the end of the string
 
-        if (strcmp(user_input, "exit") == 0)
+        if (strcasecmp(user_input, "exit") == 0)
         {
             printf("Goodbye!\n");
             break;
@@ -90,13 +119,13 @@ int main(void)
             messages[num_messages] = (Message){"assistant", extractMessage(response)};
             printf("\nAssistant: %s\n", unescape_json_string(messages[num_messages].content));
 
-            // TODO: create log here 
             // user: escape_json_string(user_input)
             // assistant: unescape_json_string(messages[num_messages].content)
             // num_messages indicates the index of message
             
-            fprintf(fp, "You: %s\n", escape_json_string(user_input));
-            fprintf(fp, "Assistant: %s\n", unescape_json_string(messages[num_messages].content));
+            
+            fprintf(fp, "user, %s\n", escape_json_string(user_input));
+            fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
 
             // Add the message to the messages array
             // messages[num_messages] = (Message){"assistant", message};
@@ -113,6 +142,7 @@ int main(void)
         }
     }
     printf("num_messages: %d\n", num_messages - 1);
+    fclose(fp);
     return 0;
 }
 
@@ -224,7 +254,7 @@ char *create_request(Message *messages, int num_messages, double temperature)
     char temperature_str[50];
     sprintf(temperature_str, "], \"temperature\": %.1f}", temperature);
     strcat(request, temperature_str);
-    // printf("request: %s\n", request);
+    printf("request: %s\n", request);
     return request;
 }
 

@@ -5,7 +5,6 @@
 #include <strings.h>
 
 int main()
-
 {
     //create a file
     FILE *fp;
