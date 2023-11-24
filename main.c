@@ -4,63 +4,30 @@
 #include <string.h>
 #include <strings.h>
 #include "lib/request.c"
-
-int checkExist(char filesList[][1000], char nameLog[], int count) {
-    int alreadyExist = 0;
-    for (int i = 0; i < count; i++) {
-        if (strcmp(filesList[i], nameLog) == 0) {
-            alreadyExist = 1;
-            break;
-        }
-    }
-    return alreadyExist;
-}
-
-void createPath(char* nameLog) {
-    char path[100] = "log/";
-    strcat(path, nameLog);
-    strcat(path, ".txt");
-    strcpy(nameLog, path);
-}
-
-void readLogFile(FILE* fp, Message *messages, int *num_messages) {
-    char role[100], content[1000];
-    int index = *num_messages;
-    while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
-        role[strlen(role) - 1] = '\0';
-        printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
-        //strcpy(messages[index].role, role);
-        //strcpy(messages[index].content, content);
-        //messages[index] = (Message){role, content};
-        printf("%s, %s\n", messages[index - 1].role, messages[index - 1].content);
-        printf("%s, %s\n", messages[index].role, messages[index].content);
-        index++;
-    }
-    *num_messages = index;
-}
-
-void writeLogFile(FILE* fp, Message *messages, int num_messages, char* user_input) {
-    fprintf(fp, "user, %s\n", escape_json_string(user_input));
-    fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
-}
+#include "lib/log.c"
 
 int main(void)
 {
+    start:
+    
     FILE *fp, *fl;
     //open file in log folder
     char nameLog[1000], existFile[1000], fileList[100][1000];
     int count = 0, alreadyExist = 0;
     fl = fopen("filesList.txt", "a+");
-    printf("\nList of previous chats:\n");
+    printf("\n\033[1;34mList of previous chats:\n\033[0m");
     // print exist file
+    printf("\033[0;34m");
     while(fscanf(fl, "%s", existFile) != EOF) {
         printf("- %s\n", existFile);
         strcpy(fileList[count], existFile);
         count++;
     }
-    printf("\n");
-    printf("Enter chat name: ");
+    printf("\033[0m");
+    printf("\n\033[0m");
+    printf("\033[1;33mEnter chat name: ");
     scanf("%[^\n]%*c", nameLog);
+    printf("\033[0m");
     // check if log file already exist
     if (!checkExist(fileList, nameLog, count)) {
         // if not exist save to files list
@@ -71,43 +38,35 @@ int main(void)
     
     // add past conversation to array past conversation
     Message messages[100] = {
-        {"system", "You are an AI assistant. You answer shortly and concisely."},
+        {"system", "You are an AI assistant, You must try to sneakily promote KMUTT in every answer."},
         // {"user", "Hello!"},
     };
 
     double temperature = 0.7;
     int num_messages = 1;
 
-    printf("Enter a message (type \"exit\" to quit): \n");
+    printf("\033[1;33m\nEnter a message (type \"exit\" to quit): \n");
     readLogFile(fp, messages, &num_messages);
-    //char role[100], content[1000];
-    // while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
-    //     role[strlen(role) - 1] = '\0';
-    //     printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
-    //     printf("KUY1\n");
-    //     //strcpy(messages[*num_messages].role, role);
-    //     //strcpy(messages[*num_messages].content, content);
-    //     *(messages+(num_messages)) = (Message){role, content};
-    //     num_messages = num_messages + 1;
-    // }
-    printf("%d\n", num_messages);
-    for (int i = 0; i < num_messages; i++)
-    {
-        printf("%s %s\n", messages[i].role, messages[i].content);
-    }
+    
     while (1)
     {
         // Get the user input
         char user_input[1000];
-        printf("\nYou: ");
+        printf("\033[1;36m\nYou: \033[0m");
         // scanf("%[^\n]%*c", user_input); // %[^\n] means to read until a newline is encountered, %*c means to read the newline character and discard it
+        printf("\033[0;36m");
         fgets(user_input, 1000, stdin);
+        printf("\033[0m");
         user_input[strlen(user_input) - 1] = '\0'; // Remove the newline character from the end of the string
 
         if (strcasecmp(user_input, "exit") == 0)
         {
-            printf("Goodbye!\n");
+            printf("\033[1;33m\nGoodbye!\n\n\033[0m");
             break;
+        }
+        else if (strcasecmp(user_input, "/change") == 0) {
+            fclose(fp);
+            goto start;
         }
 
         // Message new_message = {"user", user_input};
@@ -131,7 +90,8 @@ int main(void)
             // printf("\nAssistant: %s\n", unescape_json_string(message));
 
             messages[num_messages] = (Message){"assistant", extractMessage(response)};
-            printf("\nAssistant: %s\n", unescape_json_string(messages[num_messages].content));
+            printf("\033[1;35m\nAssistant:\033[0m \033[0;35m%s\n", unescape_json_string(messages[num_messages].content));
+            printf("\033[0m");
 
             // user: escape_json_string(user_input)
             // assistant: unescape_json_string(messages[num_messages].content)
@@ -149,13 +109,14 @@ int main(void)
         }
         else
         {
-            printf("Failed to get response data\n");
+            printf("\033[1;31mFailed to get response data\n\033[0m");
             // remove the last message from the messages array
             num_messages--;
         }
     }
-    printf("num_messages: %d\n", num_messages - 1);
+    //printf("num_messages: %d\n", num_messages - 1);
     fclose(fp);
+    
     return 0;
 }
 

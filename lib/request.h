@@ -10,7 +10,6 @@ typedef struct
     char *content;
 } Message;
 
-
 char *getKey();
 char *getResponseData(Message* messages, int num_messages, double temperature);
 char* create_request(Message* messages, int num_messages, double temperature);
