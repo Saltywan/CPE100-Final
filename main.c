@@ -4,11 +4,48 @@
 #include <string.h>
 #include <strings.h>
 #include "lib/request.c"
-#include "lib/log.c"
+
+int checkExist(char filesList[][1000], char nameLog[], int count) {
+    int alreadyExist = 0;
+    for (int i = 0; i < count; i++) {
+        if (strcmp(filesList[i], nameLog) == 0) {
+            alreadyExist = 1;
+            break;
+        }
+    }
+    return alreadyExist;
+}
+
+void createPath(char* nameLog) {
+    char path[100] = "log/";
+    strcat(path, nameLog);
+    strcat(path, ".txt");
+    strcpy(nameLog, path);
+}
+
+void readLogFile(FILE* fp, Message *messages, int *num_messages) {
+    char role[100], content[1000];
+    int index = *num_messages;
+    while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
+        role[strlen(role) - 1] = '\0';
+        printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
+        //strcpy(messages[index].role, role);
+        //strcpy(messages[index].content, content);
+        //messages[index] = (Message){role, content};
+        printf("%s, %s\n", messages[index - 1].role, messages[index - 1].content);
+        printf("%s, %s\n", messages[index].role, messages[index].content);
+        index++;
+    }
+    *num_messages = index;
+}
+
+void writeLogFile(FILE* fp, Message *messages, int num_messages, char* user_input) {
+    fprintf(fp, "user, %s\n", escape_json_string(user_input));
+    fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
+}
 
 int main(void)
 {
-    start:
     FILE *fp, *fl;
     //open file in log folder
     char nameLog[1000], existFile[1000], fileList[100][1000];
@@ -42,12 +79,22 @@ int main(void)
     int num_messages = 1;
 
     printf("Enter a message (type \"exit\" to quit): \n");
-    char* role = malloc(100 * sizeof(char));
-    char* content = malloc(1000 * sizeof(char));
-    readLogFile(fp, messages, &num_messages, role, content);
-    free(role);
-    free(content);
-    
+    readLogFile(fp, messages, &num_messages);
+    //char role[100], content[1000];
+    // while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
+    //     role[strlen(role) - 1] = '\0';
+    //     printf("\n%s: %s\n", (strcmp(role, "user") == 0) ? "You":"Assistant", content);
+    //     printf("KUY1\n");
+    //     //strcpy(messages[*num_messages].role, role);
+    //     //strcpy(messages[*num_messages].content, content);
+    //     *(messages+(num_messages)) = (Message){role, content};
+    //     num_messages = num_messages + 1;
+    // }
+    printf("%d\n", num_messages);
+    for (int i = 0; i < num_messages; i++)
+    {
+        printf("%s %s\n", messages[i].role, messages[i].content);
+    }
     while (1)
     {
         // Get the user input
@@ -62,11 +109,6 @@ int main(void)
             printf("Goodbye!\n");
             break;
         }
-        else if (strcasecmp(user_input, "/change") == 0)
-        {
-            // change chat
-            goto start;
-        }
 
         // Message new_message = {"user", user_input};
         // printf("DEBUG: %s\n", escape_json_string(user_input));
@@ -74,7 +116,7 @@ int main(void)
         num_messages++;
 
         // Get the response data
-        printf(". . .\n");
+        // printf("Thinking...\n");
         char *response = getResponseData(messages, num_messages, temperature);
         // printf("Done!\n");
 
@@ -98,7 +140,12 @@ int main(void)
             // write new chat to log file
             writeLogFile(fp, messages, num_messages, user_input);
 
+            // Add the message to the messages array
+            // messages[num_messages] = (Message){"assistant", message};
             num_messages++;
+
+            // Cleanup the response data
+            // free(message);
         }
         else
         {
