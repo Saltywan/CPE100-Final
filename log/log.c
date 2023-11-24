@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <strings.h>
 
 int main()
 
@@ -9,6 +10,7 @@ int main()
     //create a file
     FILE *fp;
     char nameLog[10000];
+    printf("Enter log file name: ");
     scanf(" %s", nameLog);
     //open file in log folder
     fp = fopen(nameLog, "w");
@@ -26,8 +28,8 @@ int main()
         //receive user input
         //input include " "
         scanf(" %[^\n]s", input);
-        //if input is "EXIT" upper case or lower case
-        if(strcmp(input, "EXIT") == 0 || strcmp(input, "exit") == 0){
+        //if input is "EXIT", use strcasecmp for case insensitive strings check
+        if(strcasecmp(input, "EXIT") == 0){
             break;
         }
         fprintf(fp, "User: %s\n", input);
