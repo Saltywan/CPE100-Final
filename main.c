@@ -26,10 +26,25 @@ size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
 int main(void)
 {
+    FILE *fp;
+    //open file in log folder
+    char nameLog[1000];
+    fp = fopen(nameLog, "w+", "r");
+    if (fp == NULL)
+    {
+        printf("File not found\n");
+        exit(1);
+    }
+    // add past conversation to array past conversation
+    while(fgets(messages[num_messages].content, 1000, fp) != NULL){
+        num_messages++;
+    }
     Message messages[100] = {
         {"system", "You are an AI assistant. You answer shortly and concisely."},
         // {"user", "Hello!"},
         // TODO: include past conversation log here
+
+        
     };
 
     double temperature = 0.7;
@@ -80,6 +95,9 @@ int main(void)
             // assistant: unescape_json_string(messages[num_messages].content)
             // num_messages indicates the index of message
             
+            fprintf(fp, "You: %s\n", escape_json_string(user_input));
+            fprintf(fp, "Assistant: %s\n", unescape_json_string(messages[num_messages].content));
+
             // Add the message to the messages array
             // messages[num_messages] = (Message){"assistant", message};
             num_messages++;
