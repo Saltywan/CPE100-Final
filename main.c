@@ -57,11 +57,6 @@ int main(void)
     strcat(path, nameLog);
     strcat(path, ".txt");
     fp = fopen(path, "a+");
-    /*if (fp == NULL)
-    {
-        printf("File not found\n");
-        exit(1);
-    }*/
     
     // add past conversation to array past conversation
     Message messages[100] = {
