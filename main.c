@@ -38,6 +38,8 @@ int main(void)
     printf("\e[0;33m(Enter new chat name to create new chat)\n");
     printf("\e[1;33m\nEnter chat name: ");
     scanf("%[^\n]%*c", nameLog);
+    char* chatName = malloc(1000 * sizeof(char)); 
+    strcpy(chatName, nameLog);
     printf("\e[0m");
     int alreadyExist = checkExist(fileList, nameLog, count);
     // check if log file already exist
@@ -62,9 +64,10 @@ int main(void)
 
     printf("\e[1;37m\n-------------------------------------------------------\n\e[0m");
     if (alreadyExist) 
-        printf("\e[1;31m\nLoad \"%s\" chat successfully.\n\e[0m", nameLog);
+        printf("\e[1;31m\nLoad \"%s\" chat successfully.\n\e[0m", chatName);
     else 
-        printf("\e[1;31m\nCreate new \"%s\" chat successfully.\n\e[0m", nameLog);
+        printf("\e[1;31m\nCreate new \"%s\" chat successfully.\n\e[0m", chatName);
+    free(chatName);
     
     // load chat history from the opened chat file
     readLogFile(fp, messages, &num_messages);
