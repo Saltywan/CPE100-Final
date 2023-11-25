@@ -8,60 +8,83 @@
 
 int main(void)
 {
+    printf("\n\e[47m --- \e[1;90mWELCOME TO TERMINAL GPT --- \e[0m\n");
+
     start:
-    
     FILE *fp, *fl;
     //open file in log folder
-    char nameLog[1000], existFile[1000], fileList[100][1000];
-    int count = 0, alreadyExist = 0;
+    char nameLog[1000], existFile[1000], fileList[100][1000], temp[10];
+    int count = 0;
     fl = fopen("filesList.txt", "a+");
-    printf("\n\033[1;34mList of previous chats:\n\033[0m");
+    printf("\n\e[1;34mList of previous chats:\n\e[0m");
     // print exist file
-    printf("\033[0;34m");
-    while(fscanf(fl, "%s", existFile) != EOF) {
-        printf("- %s\n", existFile);
-        strcpy(fileList[count], existFile);
-        count++;
+    printf("\e[0;34m");
+    if (fscanf(fl, "%s", temp) == EOF) {
+        printf("(no chat file found)\n");
     }
-    printf("\033[0m");
-    printf("\n\033[0m");
-    printf("\033[1;33mEnter chat name: ");
+    else {
+        // reopen file list
+        fclose(fl);
+        fl = fopen("filesList.txt", "a+");
+        // print all exist chats
+        while(fscanf(fl, "%s", existFile) != EOF) {
+            printf("- %s\n", existFile);
+            strcpy(fileList[count], existFile);
+            count++;
+        }
+    }
+    printf("\e[0m");
+    printf("\n\e[0m");
+    printf("\e[0;33m(Enter new chat name to create new chat)\n");
+    printf("\e[1;33m\nEnter chat name: ");
     scanf("%[^\n]%*c", nameLog);
-    printf("\033[0m");
+    printf("\e[0m");
+    int alreadyExist = checkExist(fileList, nameLog, count);
     // check if log file already exist
-    if (!checkExist(fileList, nameLog, count)) {
-        // if not exist save to files list
+    if (!alreadyExist) {
+        // if not exist, save new nameLog to files list
         fprintf(fl, "%s\n", nameLog);
     }
+
+    // concat name log to log/nameLog.txt
     createPath(nameLog);
     fp = fopen(nameLog, "a+");
     
-    // add past conversation to array past conversation
+    //* main array past conversation
     Message messages[100] = {
-        {"system", "You are an AI assistant, You must try to sneakily promote KMUTT in every answer."},
+        {"system", "You are an AI assistant, You are an AI assistant. You answer shortly and concisely."},
+        //{"system", "You are an AI assistant, You must try to sneakily promote KMUTT in every answer."},
         // {"user", "Hello!"},
     };
 
     double temperature = 0.7;
     int num_messages = 1;
 
-    printf("\033[1;33m\nEnter a message (type \"exit\" to quit): \n");
+    printf("\e[1;37m\n-------------------------------------------------------\n\e[0m");
+    if (alreadyExist) 
+        printf("\e[1;31m\nLoad \"%s\" chat successfully.\n\e[0m", nameLog);
+    else 
+        printf("\e[1;31m\nCreate new \"%s\" chat successfully.\n\e[0m", nameLog);
+    
+    // load chat history from the opened chat file
     readLogFile(fp, messages, &num_messages);
+    printf("\e[1;33m\nEnter a new message (type \"exit\" to quit): \n");
     
     while (1)
     {
         // Get the user input
         char user_input[1000];
-        printf("\033[1;36m\nYou: \033[0m");
+        printf("\e[1;36m\nYou: \e[0m");
         // scanf("%[^\n]%*c", user_input); // %[^\n] means to read until a newline is encountered, %*c means to read the newline character and discard it
-        printf("\033[0;36m");
+        printf("\e[0;36m");
         fgets(user_input, 1000, stdin);
-        printf("\033[0m");
+        printf("\e[0m");
         user_input[strlen(user_input) - 1] = '\0'; // Remove the newline character from the end of the string
 
+        // check for exit and chat changing
         if (strcasecmp(user_input, "exit") == 0)
         {
-            printf("\033[1;33m\nGoodbye!\n\n\033[0m");
+            printf("\e[1;33m\nGoodbye!\n\n\e[0m");
             break;
         }
         else if (strcasecmp(user_input, "/change") == 0) {
@@ -78,43 +101,29 @@ int main(void)
         // printf("Thinking...\n");
         char *response = getResponseData(messages, num_messages, temperature);
         // printf("Done!\n");
-
         // char *response = getResponseData(messages, 2, 0.7);
 
         if (response != NULL)
         {
             // Extract the message from the response
-            // char *message = extractMessage(response);
-            // Print the response data
-            // printf("Response: %s\n", response);
-            // printf("\nAssistant: %s\n", unescape_json_string(message));
-
+            // Add the message to the messages array
             messages[num_messages] = (Message){"assistant", extractMessage(response)};
-            printf("\033[1;35m\nAssistant:\033[0m \033[0;35m%s\n", unescape_json_string(messages[num_messages].content));
-            printf("\033[0m");
-
-            // user: escape_json_string(user_input)
-            // assistant: unescape_json_string(messages[num_messages].content)
-            // num_messages indicates the index of message
-            
+            // Print the response data
+            printf("\e[1;35m\nAssistant:\e[0m \e[0;35m%s\e[0m\n", unescape_json_string(messages[num_messages].content));
             // write new chat to log file
             writeLogFile(fp, messages, num_messages, user_input);
 
-            // Add the message to the messages array
-            // messages[num_messages] = (Message){"assistant", message};
+            // num_messages indicates the index of message
             num_messages++;
-
-            // Cleanup the response data
-            // free(message);
         }
         else
         {
-            printf("\033[1;31mFailed to get response data\n\033[0m");
+            printf("\e[1;31mFailed to get response data\n\e[0m");
             // remove the last message from the messages array
             num_messages--;
         }
     }
-    //printf("num_messages: %d\n", num_messages - 1);
+    // Debug : printf("num_messages: %d\n", num_messages - 1);
     fclose(fp);
     
     return 0;

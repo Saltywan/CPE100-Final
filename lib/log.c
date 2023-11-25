@@ -24,7 +24,7 @@ void readLogFile(FILE* fp, Message *messages, int *num_messages) {
     int index = *num_messages;
     while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
         role[strlen(role) - 1] = '\0';
-        printf("\n%s: %s \033[0m\n", (strcmp(role, "user") == 0) ? "\033[1;36mYou\033[0m\033[0;36m":"\033[1;35mAssistant\033[0m\033[0;35m", content);
+        printf("\n%s: %s \e[0m\n", (strcmp(role, "user") == 0) ? "\e[1;36mYou\e[0m\e[0;36m":"\e[1;35mAssistant\e[0m\e[0;35m", content);
         messages[index].role = malloc(strlen(role) + 1);
         messages[index].content = malloc(strlen(content) + 1);
         strcpy(messages[index].role, role);
