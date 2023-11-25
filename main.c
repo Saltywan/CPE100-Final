@@ -92,6 +92,7 @@ int main(void)
         }
         else if (strcasecmp(user_input, "/change") == 0) {
             fclose(fp);
+            fclose(fl);
             goto start;
         }
 
