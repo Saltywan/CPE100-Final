@@ -84,6 +84,7 @@ char *getResponseData(Message *messages, int num_messages, double temperature)
         // Return the response data
         return response.data;
     }
+
     curl_global_cleanup();
     return NULL;
 }
@@ -108,7 +109,7 @@ char *create_request(Message *messages, int num_messages, double temperature)
     char temperature_str[50];
     sprintf(temperature_str, "], \"temperature\": %.1f}", temperature);
     strcat(request, temperature_str);
-    //printf("request: %s\n", request);
+    // printf("request: %s\n", request);
     return request;
 }
 
