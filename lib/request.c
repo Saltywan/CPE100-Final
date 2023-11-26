@@ -2,7 +2,7 @@
 
 // Callback function to write the response data
 size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) // size_t is an unsigned integer type of at least 16 bit
-{                                                                            // nmemb is the number of bytes to be written, size is the size of the data pointed to by ptr, userp is the pointer passed to the callback function
+{                                                                           
     size_t realsize = size * nmemb;
     ResponseData *response = (ResponseData *)userp;
 

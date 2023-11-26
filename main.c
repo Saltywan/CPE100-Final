@@ -47,6 +47,7 @@ int main(void)
         // if not exist, save new nameLog to files list
         fprintf(fl, "%s\n", nameLog);
     }
+    fclose(fl);
 
     // concat name log to log/nameLog.txt
     createPath(nameLog);
@@ -77,9 +78,7 @@ int main(void)
     {
         // Get the user input
         char user_input[1000];
-        printf("\e[1;36m\nYou: \e[0m");
-        // scanf("%[^\n]%*c", user_input); // %[^\n] means to read until a newline is encountered, %*c means to read the newline character and discard it
-        printf("\e[0;36m");
+        printf("\e[1;36m\nYou: \e[0;36m");
         fgets(user_input, 1000, stdin);
         printf("\e[0m");
         user_input[strlen(user_input) - 1] = '\0'; // Remove the newline character from the end of the string
@@ -92,21 +91,16 @@ int main(void)
         }
         else if (strcasecmp(user_input, "/change") == 0) {
             fclose(fp);
-            fclose(fl);
             goto start;
         }
 
         // Message new_message = {"user", user_input};
-        // printf("DEBUG: %s\n", escape_json_string(user_input));
         messages[num_messages] = (Message){"user", escape_json_string(user_input)};
         num_messages++;
 
         // Get the response data
-        // printf("Thinking...\n");
         char *response = getResponseData(messages, num_messages, temperature);
-        // printf("Done!\n");
-        // char *response = getResponseData(messages, 2, 0.7);
-
+    
         if (response != NULL)
         {
             // Extract the message from the response
