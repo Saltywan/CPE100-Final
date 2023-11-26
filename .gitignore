@@ -1,6 +1,11 @@
 .DS_Store
 .vscode/
 **.exe
-main
+
 api_key.txt
 filesList.txt
+
+log/*.txt
+!log/test.txt
+
+*.out

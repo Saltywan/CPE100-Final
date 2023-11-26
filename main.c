@@ -122,6 +122,7 @@ int main(void)
         }
     }
     // Debug : printf("num_messages: %d\n", num_messages - 1);
+    fclose(fl);
     fclose(fp);
     
     return 0;

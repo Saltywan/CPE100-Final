@@ -15,5 +15,5 @@ Install libcurl-dev (any)
 Run
 
 ```bash
-make clean && make run
+./run.sh
 ```
