@@ -33,7 +33,7 @@ void readLogFile(FILE* fp, Message *messages, int *num_messages) {
         messages[index].content = malloc(strlen(content) + 1);
         // add chat history to current chat array
         strcpy(messages[index].role, role);
-        strcpy(messages[index].content, escape_json_string(content));
+        strcpy(messages[index].content, content);
         index++;
     }
     *num_messages = index;
