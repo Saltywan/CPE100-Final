@@ -22,13 +22,13 @@ void createPath(char* nameLog) {
 
 void readLogFile(FILE* fp, Message *messages, int *num_messages) {
     char* role = malloc(100 * sizeof(char));
-    char* content = malloc(1000 * sizeof(char));
+    char* content = malloc(10000 * sizeof(char));
     int index = *num_messages;
     // scanning through history of current chat
     while(fscanf(fp, "%s %[^\n]s", role, content) != EOF){
         role[strlen(role) - 1] = '\0';
         // print out the previous chat history
-        printf("\n%s: %s \e[0m\n", (strcmp(role, "user") == 0) ? "\e[1;36mYou\e[0m\e[0;36m":"\e[1;35mAssistant\e[0m\e[0;35m", content);
+        printf("\n%s: %s \e[0m\n", (strcmp(role, "user") == 0) ? "\e[1;36mYou\e[0m\e[0;36m":"\e[1;35mAssistant\e[0m\e[0;35m", unescape_json_string(content));
         messages[index].role = malloc(strlen(role) + 1);
         messages[index].content = malloc(strlen(content) + 1);
         // add chat history to current chat array
@@ -42,5 +42,5 @@ void readLogFile(FILE* fp, Message *messages, int *num_messages) {
 void writeLogFile(FILE* fp, Message *messages, int num_messages, char* user_input) {
     // save new chat to chat history
     fprintf(fp, "user, %s\n", escape_json_string(user_input));
-    fprintf(fp, "assistant, %s\n", unescape_json_string(messages[num_messages].content));
+    fprintf(fp, "assistant, %s\n", messages[num_messages].content);
 }
