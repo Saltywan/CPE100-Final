@@ -283,7 +283,11 @@ char *getKey()
             fprintf(file, "%s", api_key);
             fclose(file);
             // clear screen
-            system("clear");
+            // system("clear"); // for linux
+            // system("cls"); // for windows
+            system("cls||clear"); // for both
+            //clear buffer
+            while ((getchar()) != '\n');
         }
     }
 
