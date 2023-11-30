@@ -130,14 +130,14 @@ char *extractMessage(char *response_data)
             if (*end == '\"')
             {
                 quote_count++;
-                if (quote_count == 13)
+                if (quote_count == 15)
                 {
                     break;
                 }
             }
             end--;
         }
-        if (quote_count == 13)
+        if (quote_count == 15)
         {
             size_t message_length = end - start;
             char *message = malloc(message_length + 1);
